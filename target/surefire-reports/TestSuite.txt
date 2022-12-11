@@ -1,0 +1,8 @@
+-------------------------------------------------------------------------------
+Test set: TestSuite
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 2.042 sec <<< FAILURE! - in TestSuite
+test1(restAssured.EndToEndTest)  Time elapsed: 1.604 sec  <<< FAILURE!
+java.lang.ClassCastException: java.util.ArrayList cannot be cast to java.lang.String
+	at restAssured.EndToEndTest.test1(EndToEndTest.java:29)
+
