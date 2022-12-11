@@ -16,137 +16,97 @@ import io.restassured.specification.RequestSpecification;
 
 public class EndToEndTest {
 	Response response;
-	String baseURI="http://localhost:3000";
-	
+	RequestSpecification request;
+	JsonPath jpath;
+	List<String> names;
+	List<Integer> employeeIds;
+	int employeeId;
 	
 	@Test
-	public void test1() {
+	public void test1()
+	{
+		prepare();
+		response = GetAllEmployees();
+		System.out.println(response.getBody().asString());
+		Assert.assertEquals(200, response.statusCode());
 		
-		System.out.println("Get All Employees");		
-		response = GetAllEmployee();
-		Assert.assertEquals(200, response.getStatusCode());
-		JsonPath jpath = response.jsonPath();
-		String name=jpath.get("name");
-		int id= jpath.get("id");
+		addEmployee("Harsh", "8000");
+		Assert.assertEquals(201, response.statusCode());
+		jpath = response.jsonPath();
+		employeeId = jpath.get("id");
+		response = GetAllEmployees();
+		jpath = response.jsonPath();
+		names = jpath.get("name");
+		Assert.assertTrue(names.get(0).equals("Harsh"));
 		
-		System.out.println("Get Single Employee");	
+		response = GetSingleEmployee(employeeId);
+		System.out.println(response.getBody().asString());
+		Assert.assertEquals(200, response.statusCode());
+		jpath = response.jsonPath();
+		Assert.assertTrue(jpath.get("name").equals("Harsh"));
 		
-		response=GetSingleEmp(id);
-		Assert.assertEquals(200, response.getStatusCode());
-		String ResponseBody = response.getBody().asString();
-		//Assert.assertTrue(responseBody.contains("Jhon"));
-		JsonPath jpath1 = response.jsonPath();
-	    //Assert.assertEquals(name.get(id).equals("Jhon"));
+		updateEmployeeName(employeeId, "Jack");
+		System.out.println(response.getBody().asString());
+		Assert.assertEquals(200, response.statusCode());
+		response = GetSingleEmployee(employeeId);
+		jpath = response.jsonPath();
+		String name = jpath.get("name");
+		Assert.assertTrue(name.equals("Jack"));
 		
+		deleteEmployee(employeeId);
+		Assert.assertEquals(200, response.statusCode());
+		response = GetSingleEmployee(employeeId);
+		Assert.assertEquals(404, response.statusCode());
 		
-		
-		System.out.println("Create new Employee");		
-		response=CreateEmp("Harsh" , "5000");
-		Assert.assertEquals(201, response.getStatusCode());
-		
-		
-		System.out.println("Update Employee");		
-		response=UpdateEmp(id,"Sam" , "7000");
-		Assert.assertEquals(200, response.getStatusCode());
-		
-		
-		System.out.println("Delete Employee");
-		response=DeleteEmp(28);
-		Assert.assertEquals(200, response.getStatusCode());
-		
-		System.out.println("Validate statuscode for created employee");
-		response=GetSingleEmp(28);
-		Assert.assertEquals(404, response.getStatusCode());
-		
-		System.out.println("Validate Deleted Employee");
-		response=GetAllEmployee();		
-		//Assert.assertTrue(ResponseBody.contains("Harsh"));
-		//JsonPath jpath = response.jsonPath();
-		List<String> names = jpath.get("name");
-		System.out.println("The name is :" + names.get(1));
-		
-		Assert.assertEquals(names.get(0), "Jhon");
-	
-		
-		
+		response = GetAllEmployees();
+		jpath = response.jsonPath();
+		names = jpath.get("name");
+		Assert.assertFalse(names.contains("Jack"));
 	}
 	
-
-	public Response GetAllEmployee() {
-		RestAssured.baseURI = this.baseURI;	
-		RequestSpecification request = RestAssured.given();
+	public void prepare()
+	{
+		RestAssured.baseURI = "http://localhost:3000";
+		
+		request = RestAssured.given();
+	}
+	
+	public Response GetAllEmployees()
+	{		
 		response = request.get("employees");
-		String ResponseBody = response.getBody().asString();
-
-		System.out.println(ResponseBody);
 		
 		return response;
-		
-	}
-
-	public Response GetSingleEmp(int empID) {
-		RestAssured.baseURI = this.baseURI;	
-		RequestSpecification request = RestAssured.given();
-		Response response = request.param("id" , empID).get("employees");
-		System.out.println(response.getBody().asString());
-		
-		return response;
-		
-
 	}
 	
-	public Response CreateEmp(String name, String Salary) {
-		
-		RestAssured.baseURI = this.baseURI;	
-		RequestSpecification request = RestAssured.given();
-		
-		Map<String, Object> MapObj=new HashMap<String,Object>();
-		MapObj.put("name", name);
-		MapObj.put("Salary", Salary);
-		
-		Response response=request
-		                  .contentType(ContentType.JSON)
-		                  .accept(ContentType.JSON)
-		                  .body(MapObj)
-		                  .post("employees/create");
-		
-		System.out.println(response.getBody().asString());
+	public Response GetSingleEmployee(int employeeId)
+	{		
+		response = request.get("employees/" + employeeId);
 		
 		return response;
-		
-		
 	}
 	
-	public Response UpdateEmp(int empID, String name, String Salary) {
+	public void addEmployee(String employeeName, String employeeSalary)
+	{
+		Map<String,Object> MapObj = new HashMap<String,Object>();
 		
-		RestAssured.baseURI = this.baseURI;	
-		RequestSpecification request = RestAssured.given();
+		MapObj.put("name", employeeName);
+		MapObj.put("salary", employeeSalary);
 		
-		Map<String, Object> MapObj=new HashMap<String,Object>();
-		MapObj.put("name", name);
-		MapObj.put("salary", Salary);
-		Response response=request
-				   .contentType(ContentType.JSON)
-                  .accept(ContentType.JSON)
-                  .body(MapObj)
-                  .put("employees"+empID);
-		
-       System.out.println(response.getBody().asString());
-		
-		return response;
-		
+		response = request.contentType(ContentType.JSON).accept(ContentType.JSON).body(MapObj).post("employees/create");
 	}
 	
-	public Response DeleteEmp(int empID) {
+	public void updateEmployeeName(int employeeId, String newName)
+	{
+		Map<String,Object> MapObj = new HashMap<String,Object>();
 		
-		RestAssured.baseURI = this.baseURI;	
-		RequestSpecification request = RestAssured.given();
+		MapObj.put("name", newName);
+		MapObj.put("salary", 8000);
 		
-		Response response = request.delete("employees"+empID);
-
-		System.out.println(response.getBody().asString());
-		
-		return response;
-		
+		response = request.contentType(ContentType.JSON).accept(ContentType.JSON).body(MapObj).put("employees/update/" + employeeId);
+	}
+	
+	public void deleteEmployee(int employeeId)
+	{
+		response = request.delete("employees/" + employeeId);
 	}
 }
